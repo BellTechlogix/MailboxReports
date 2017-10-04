@@ -281,7 +281,8 @@ if(($reportselection) -like "*EOL")
 	Foreach($Mbx in $AllMailbox)
 	{
 		$i++
-	Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.Count*100)
+	If($i -ne 0)
+		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.tostring().Count)" -PercentComplete ($i/$AllMailbox.tostring().Count*100)}
 	$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
 	$userObj = New-Object PSObject
 	$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
