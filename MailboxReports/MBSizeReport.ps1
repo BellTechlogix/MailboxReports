@@ -230,10 +230,20 @@ if(($reportselection) -notlike "*EOL")
 	$userObj | Add-Member NoteProperty -Name "ServerName" -Value $mbx.ServerName
 	if($Stats)
 	{
-		$userObj | Add-Member NoteProperty -Name "TotalItemSize" -Value $Stats.TotalItemSize.Value.ToMB()
+		$totalsizearray = (($Stats.TotalItemSize.Value).tostring()).split("(").split(" ")
+		$totalsize = [float]$totalsizearray[0]
+		IF($totalsizearray[1] -eq "GB"){$totalsizeMB = $totalsize*1024}
+		IF($totalsizearray[1] -eq "MB"){$totalsizeMB = $totalsize}
+		IF($totalsizearray[1] -eq "KB"){$totalsizeMB = $totalsize/1024}
+		$userObj | Add-Member NoteProperty -Name "TotalItemSize" -Value $totalsizeMB
 		$userObj | Add-Member NoteProperty -Name "ItemCount" -Value $Stats.ItemCount
 		$userObj | Add-Member NoteProperty -Name "DeletedItemCount" -Value $Stats.DeletedItemCount
-		$userObj | Add-Member NoteProperty -Name "TotalDeletedItemSize" -Value $Stats.TotalDeletedItemSize.Value.ToMB()
+		$deletedsizearray = (($Stats.TotalDeletedItemSize.Value).tostring()).split("(").split(" ")
+		$deletedsize = [float]$deletedsizearray[0]
+		IF($deletedsizearray[1] -eq "GB"){$deletedsizeMB = $deletedsize*1024}
+		IF($deletedsizearray[1] -eq "MB"){$deletedsizeMB = $deletedsize}
+		IF($totalsizearray[1] -eq "KB"){$deletedsizeMB = $deletedsize/1024}
+		$userObj | Add-Member NoteProperty -Name "TotalDeletedItemSize" -Value $deletedsizeMB
 	}
 	$userObj | Add-Member NoteProperty -Name "ProhibitSendReceiveQuota-In-MB" -Value $ProhibitSendReceiveQuota$userObj | Add-Member NoteProperty -Name "UseDatabaseQuotaDefaults" -Value $Mbx.UseDatabaseQuotaDefaults
 	$userObj | Add-Member NoteProperty -Name "LastLogonTime" -Value $Stats.LastLogonTime
