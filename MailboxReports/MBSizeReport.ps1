@@ -160,25 +160,36 @@ $objForm.Add_Shown({$objForm.Activate()})
 Return $Script:x
 }
 
-#Add the Exchange Module
-Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn;
+#Select the report type
+$options01 = "General Report OnPrem","General Report EOL","PreMigration Report OnPrem","PreMigration Report EOL","PostMigration Report OnPrem","PostMigration Report EOL"
+$reportselection = MultipleSelectionBox -listboxtype one -inputarray $options01
 
-#For Exchange 2010
-Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010;
+IF($reportselection -inotlike "*EOL")
+{
+	#Add the Exchange Module
+	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn;
+
+	#For Exchange 2010
+	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010;
+}
 
 #Select the deatils you wish in your report
-$options = "Display Name","Alias","RecipientType","Recipient OU","Primary SMTP address","Email Addresses","Database","ServerName","TotalItemSize","ItemCount","DeletedItemCount","TotalDeletedItemSize","LastLogonTime"
-$selections = MultipleSelectionBox -listboxtype multisimple -inputarray $options
+$options02 = "Display Name","Alias","RecipientType","Recipient OU","Primary SMTP address","Email Addresses","Database","ServerName","TotalItemSize","ItemCount","DeletedItemCount","TotalDeletedItemSize","LastLogonTime","TimeStamp"
+$selections = MultipleSelectionBox -listboxtype multisimple -inputarray $options02
+
 
 #MailUser data import
-If((Select-UserBase) -eq "Yes")
+#Check if On-Prem or Exchange Online
+if(($reportselection) -notlike "*EOL")
 {
+	If((Select-UserBase) -eq "Yes")
+	{
 	write-host "Get All Mailboxes"
 	$folder = Get-Folder
 	$AllMailbox = Get-mailbox -resultsize unlimited|select *,@{n='SmtpAddress';e={ $_.EmailAddresses.SmtpAddress }}
 
 }
-ELSE{
+	ELSE{
 	write-host "Get Mailboxes From Input File"
 	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
 	$MailUsers = Import-Csv $MailUserFile
@@ -201,10 +212,10 @@ ELSE{
 	$AllMailbox = $MailboxArray
 }
 
-$i = 0
-$output=@()
-Foreach($Mbx in $AllMailbox)
-{
+	$i = 0
+	$output=@()
+	Foreach($Mbx in $AllMailbox)
+	{
 		$i++
 	Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.Count*100)
 	$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
@@ -226,11 +237,91 @@ Foreach($Mbx in $AllMailbox)
 	}
 	$userObj | Add-Member NoteProperty -Name "ProhibitSendReceiveQuota-In-MB" -Value $ProhibitSendReceiveQuota$userObj | Add-Member NoteProperty -Name "UseDatabaseQuotaDefaults" -Value $Mbx.UseDatabaseQuotaDefaults
 	$userObj | Add-Member NoteProperty -Name "LastLogonTime" -Value $Stats.LastLogonTime
+	$userObj | Add-Member NoteProperty -Name "TimeStamp" -Value (get-date -Format "yyyy-MMM-dd HH:mm:ss")
 	$output += $UserObj  
 	# Update Counters and Write Progress
 }
+}
+
+#If Exchange Online
+if(($reportselection) -like "*EOL")
+{
+	If((Select-UserBase) -eq "Yes")
+	{
+	write-host "Get All Mailboxes"
+	$folder = Get-Folder
+	$AllMailbox = Get-mailbox -resultsize unlimited|select *,@{n='SmtpAddress';e={ $_.EmailAddresses }}
+
+}
+	ELSE{
+	write-host "Get Mailboxes From Input File"
+	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
+	$MailUsers = Import-Csv $MailUserFile
+	$MailUsers = Import-Csv $MailUserFile
+	$mailboxArray = foreach ($mailbox in $mailusers) {
+		$curMailbox = Get-Mailbox $mailbox.EmailAddress
+		#$stats = $curMailbox | Get-MailboxStatistics
+        $curMailbox |
+    		Select-Object DisplayName,
+            					Alias,
+                      DistinguishedName,
+                      RecipientType,
+                      OrganizationalUnit,
+            					@{n='SmtpAddress';e={ $_.EmailAddresses }},
+            					PrimarySmtpAddress,
+                      Database,
+                      ServerName,
+                      UseDatabaseQuotaDefaults
+	}
+	$AllMailbox = $MailboxArray
+}
+
+	$i = 0
+	$output=@()
+	Foreach($Mbx in $AllMailbox)
+	{
+		$i++
+	Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.Count*100)
+	$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
+	$userObj = New-Object PSObject
+	$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
+	$userObj | Add-Member NoteProperty -Name "Alias" -Value $Mbx.Alias
+	$userObj | Add-Member NoteProperty -Name "RecipientType" -Value $Mbx.RecipientType
+	$userObj | Add-Member NoteProperty -Name "Recipient OU" -Value $Mbx.OrganizationalUnit
+	$userObj | Add-Member NoteProperty -Name "Primary SMTP address" -Value $Mbx.PrimarySmtpAddress
+	$userObj | Add-Member NoteProperty -Name "Email Addresses" -Value ($Mbx.SmtpAddress -join ";")
+	$userObj | Add-Member NoteProperty -Name "Database" -Value $mbx.Database
+	$userObj | Add-Member NoteProperty -Name "ServerName" -Value $mbx.ServerName
+	if($Stats)
+	{
+		$totalsizearray = (($Stats.TotalItemSize.Value).tostring()).split("(").split(" ")
+		$totalsize = [float]$totalsizearray[0]
+		IF($totalsizearray[1] -eq "GB"){$totalsizeMB = $totalsize*1024}
+		IF($totalsizearray[1] -eq "MB"){$totalsizeMB = $totalsize}
+		IF($totalsizearray[1] -eq "KB"){$totalsizeMB = $totalsize/1024}
+		$userObj | Add-Member NoteProperty -Name "TotalItemSize" -Value $totalsizeMB
+		$userObj | Add-Member NoteProperty -Name "ItemCount" -Value $Stats.ItemCount
+		$userObj | Add-Member NoteProperty -Name "DeletedItemCount" -Value $Stats.DeletedItemCount
+		$deletedsizearray = (($Stats.TotalDeletedItemSize.Value).tostring()).split("(").split(" ")
+		$deletedsize = [float]$deletedsizearray[0]
+		IF($deletedsizearray[1] -eq "GB"){$deletedsizeMB = $deletedsize*1024}
+		IF($deletedsizearray[1] -eq "MB"){$deletedsizeMB = $deletedsize}
+		IF($totalsizearray[1] -eq "KB"){$deletedsizeMB = $deletedsize/1024}
+		$userObj | Add-Member NoteProperty -Name "TotalDeletedItemSize" -Value $deletedsizeMB
+	}
+	$userObj | Add-Member NoteProperty -Name "ProhibitSendReceiveQuota-In-MB" -Value $ProhibitSendReceiveQuota$userObj | Add-Member NoteProperty -Name "UseDatabaseQuotaDefaults" -Value $Mbx.UseDatabaseQuotaDefaults
+	$userObj | Add-Member NoteProperty -Name "LastLogonTime" -Value $Stats.LastLogonTime
+	$userObj | Add-Member NoteProperty -Name "TimeStamp" -Value (get-date -Format "yyyy-MMM-dd HH:mm:ss")
+	$output += $UserObj  
+	# Update Counters and Write Progress
+}
+}
+$rpttype = @{'General Report OnPrem' = "OnPrem_RPT";'General Report EOL' = "EOL_RPT";'PreMigration Report OnPrem' = "OnPrem_PreMig";'PreMigration Report EOL' = "EOL_PreMig";
+	'PostMigration Report OnPrem' = "OnPrem_PostMig";'PostMigration Report EOL' = "EOL_PostMig"}
+
 
 $output = $output|select $selections
-$date = get-date -Format "yyyy-MMM-dd"
-IF($MailUserFile -ne $null){$output | Export-csv ($MailUserFile.PSParentPath+"\MBReport_$date.csv") -NoTypeInformation}
-ELSE{$output | Export-csv ($folder+"\MBReport_$date.csv") -NoTypeInformation}
+$date = get-date -Format "HHmm-yyyy-MMM-dd"
+$type = $rpttype[$reportselection]
+IF($MailUserFile -ne $null){$output | Export-csv (($MailUserFile.PSParentPath+"\$type")+"_"+("$date.csv")) -NoTypeInformation}
+ELSE{$output | Export-csv (($folder+"\$type")+"_"+("$date.csv")) -NoTypeInformation}
