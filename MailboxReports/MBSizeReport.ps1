@@ -14,9 +14,12 @@ function Get-FileName
       [Parameter(Mandatory=$false)]
       [switch]$Obj,
       [Parameter(Mandatory=$False)]
-      [string]$Title = "Select A File"
+      [string]$Title = "Select A File",
+	  [Parameter(Mandatory=$False)]
+      [string]$InitialDirectory
     )
-   if(!($Title)) { $Title="Select Input File"}
+	if(!($Title)) { $Title="Select Input File"}
+	if(!($InitialDirectory)) { $InitialDirectory="c:\"}
 	[System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") | Out-Null
 	$OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
 	$OpenFileDialog.initialDirectory = $initialDirectory
@@ -193,9 +196,10 @@ if(($reportselection) -notlike "*EOL")
 	write-host "Get Mailboxes From Input File"
 	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
 	$MailUsers = Import-Csv $MailUserFile
-	$MailUsers = Import-Csv $MailUserFile
 	$mailboxArray = foreach ($mailbox in $mailusers) {
+		$curMailbox = $null
 		$curMailbox = Get-Mailbox $mailbox.EmailAddress
+		if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
 		#$stats = $curMailbox | Get-MailboxStatistics
         $curMailbox |
     		Select-Object DisplayName,
@@ -269,8 +273,8 @@ if(($reportselection) -like "*EOL")
 	write-host "Get Mailboxes From Input File"
 	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
 	$MailUsers = Import-Csv $MailUserFile
-	$MailUsers = Import-Csv $MailUserFile
 	$mailboxArray = foreach ($mailbox in $mailusers) {
+		$curMailbox = $null
 		$curMailbox = Get-Mailbox $mailbox.EmailAddress
 		if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
 		#$stats = $curMailbox | Get-MailboxStatistics
