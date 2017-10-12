@@ -272,6 +272,7 @@ if(($reportselection) -like "*EOL")
 	$MailUsers = Import-Csv $MailUserFile
 	$mailboxArray = foreach ($mailbox in $mailusers) {
 		$curMailbox = Get-Mailbox $mailbox.EmailAddress
+		if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
 		#$stats = $curMailbox | Get-MailboxStatistics
         $curMailbox |
     		Select-Object DisplayName,
