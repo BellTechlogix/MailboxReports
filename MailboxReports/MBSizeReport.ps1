@@ -293,41 +293,41 @@ if(($reportselection) -like "*EOL")
 	Foreach($Mbx in $AllMailbox)
 	{
 		$i++
-	If($i -ne 0)
-		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.tostring().Count)" -PercentComplete ($i/$AllMailbox.tostring().Count*100)}
-	$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
-	$userObj = New-Object PSObject
-	$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
-	$userObj | Add-Member NoteProperty -Name "Alias" -Value $Mbx.Alias
-	$userObj | Add-Member NoteProperty -Name "RecipientType" -Value $Mbx.RecipientType
-	$userObj | Add-Member NoteProperty -Name "Recipient OU" -Value $Mbx.OrganizationalUnit
-	$userObj | Add-Member NoteProperty -Name "Primary SMTP address" -Value $Mbx.PrimarySmtpAddress
-	$userObj | Add-Member NoteProperty -Name "Email Addresses" -Value ($Mbx.SmtpAddress -join ";")
-	$userObj | Add-Member NoteProperty -Name "Database" -Value $mbx.Database
-	$userObj | Add-Member NoteProperty -Name "ServerName" -Value $mbx.ServerName
-	if($Stats)
-	{
-		$totalsizearray = (($Stats.TotalItemSize.Value).tostring()).split("(").split(" ")
-		$totalsize = [float]$totalsizearray[0]
-		IF($totalsizearray[1] -eq "GB"){$totalsizeMB = $totalsize*1024}
-		IF($totalsizearray[1] -eq "MB"){$totalsizeMB = $totalsize}
-		IF($totalsizearray[1] -eq "KB"){$totalsizeMB = $totalsize/1024}
-		$userObj | Add-Member NoteProperty -Name "TotalItemSize" -Value $totalsizeMB
-		$userObj | Add-Member NoteProperty -Name "ItemCount" -Value $Stats.ItemCount
-		$userObj | Add-Member NoteProperty -Name "DeletedItemCount" -Value $Stats.DeletedItemCount
-		$deletedsizearray = (($Stats.TotalDeletedItemSize.Value).tostring()).split("(").split(" ")
-		$deletedsize = [float]$deletedsizearray[0]
-		IF($deletedsizearray[1] -eq "GB"){$deletedsizeMB = $deletedsize*1024}
-		IF($deletedsizearray[1] -eq "MB"){$deletedsizeMB = $deletedsize}
-		IF($totalsizearray[1] -eq "KB"){$deletedsizeMB = $deletedsize/1024}
-		$userObj | Add-Member NoteProperty -Name "TotalDeletedItemSize" -Value $deletedsizeMB
+		If($i -ne 0)
+		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.Count*100)}
+		$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
+		$userObj = New-Object PSObject
+		$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
+		$userObj | Add-Member NoteProperty -Name "Alias" -Value $Mbx.Alias
+		$userObj | Add-Member NoteProperty -Name "RecipientType" -Value $Mbx.RecipientType
+		$userObj | Add-Member NoteProperty -Name "Recipient OU" -Value $Mbx.OrganizationalUnit
+		$userObj | Add-Member NoteProperty -Name "Primary SMTP address" -Value $Mbx.PrimarySmtpAddress
+		$userObj | Add-Member NoteProperty -Name "Email Addresses" -Value ($Mbx.SmtpAddress -join ";")
+		$userObj | Add-Member NoteProperty -Name "Database" -Value $mbx.Database
+		$userObj | Add-Member NoteProperty -Name "ServerName" -Value $mbx.ServerName
+		if($Stats)
+		{
+			$totalsizearray = (($Stats.TotalItemSize.Value).tostring()).split("(").split(" ")
+			$totalsize = [float]$totalsizearray[0]
+			IF($totalsizearray[1] -eq "GB"){$totalsizeMB = $totalsize*1024}
+			IF($totalsizearray[1] -eq "MB"){$totalsizeMB = $totalsize}
+			IF($totalsizearray[1] -eq "KB"){$totalsizeMB = $totalsize/1024}
+			$userObj | Add-Member NoteProperty -Name "TotalItemSize" -Value $totalsizeMB
+			$userObj | Add-Member NoteProperty -Name "ItemCount" -Value $Stats.ItemCount
+			$userObj | Add-Member NoteProperty -Name "DeletedItemCount" -Value $Stats.DeletedItemCount
+			$deletedsizearray = (($Stats.TotalDeletedItemSize.Value).tostring()).split("(").split(" ")
+			$deletedsize = [float]$deletedsizearray[0]
+			IF($deletedsizearray[1] -eq "GB"){$deletedsizeMB = $deletedsize*1024}
+			IF($deletedsizearray[1] -eq "MB"){$deletedsizeMB = $deletedsize}
+			IF($totalsizearray[1] -eq "KB"){$deletedsizeMB = $deletedsize/1024}
+			$userObj | Add-Member NoteProperty -Name "TotalDeletedItemSize" -Value $deletedsizeMB
+		}
+		$userObj | Add-Member NoteProperty -Name "ProhibitSendReceiveQuota-In-MB" -Value $ProhibitSendReceiveQuota$userObj | Add-Member NoteProperty -Name "UseDatabaseQuotaDefaults" -Value $Mbx.UseDatabaseQuotaDefaults
+		$userObj | Add-Member NoteProperty -Name "LastLogonTime" -Value $Stats.LastLogonTime
+		$userObj | Add-Member NoteProperty -Name "TimeStamp" -Value (get-date -Format "yyyy-MMM-dd HH:mm:ss")
+		$output += $UserObj  
+		# Update Counters and Write Progress
 	}
-	$userObj | Add-Member NoteProperty -Name "ProhibitSendReceiveQuota-In-MB" -Value $ProhibitSendReceiveQuota$userObj | Add-Member NoteProperty -Name "UseDatabaseQuotaDefaults" -Value $Mbx.UseDatabaseQuotaDefaults
-	$userObj | Add-Member NoteProperty -Name "LastLogonTime" -Value $Stats.LastLogonTime
-	$userObj | Add-Member NoteProperty -Name "TimeStamp" -Value (get-date -Format "yyyy-MMM-dd HH:mm:ss")
-	$output += $UserObj  
-	# Update Counters and Write Progress
-}
 }
 $rpttype = @{'General Report OnPrem' = "OnPrem_RPT";'General Report EOL' = "EOL_RPT";'PreMigration Report OnPrem' = "OnPrem_PreMig";'PreMigration Report EOL' = "EOL_PreMig";
 	'PostMigration Report OnPrem' = "OnPrem_PostMig";'PostMigration Report EOL' = "EOL_PostMig"}
