@@ -169,11 +169,7 @@ $reportselection = MultipleSelectionBox -listboxtype one -inputarray $options01
 
 IF($reportselection -inotlike "*EOL")
 {
-	#Add the Exchange Module
-	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn;
 
-	#For Exchange 2010
-	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010;
 }
 
 #Select the deatils you wish in your report
@@ -185,6 +181,14 @@ $selections = MultipleSelectionBox -listboxtype multisimple -inputarray $options
 #Check if On-Prem or Exchange Online
 if(($reportselection) -notlike "*EOL")
 {
+	Write-Host "On-Prem Report Selected"
+	
+	#Add the Exchange Module
+	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.SnapIn;
+
+	#For Exchange 2010
+	Add-PSSnapin Microsoft.Exchange.Management.PowerShell.E2010;
+	
 	If((Select-UserBase) -eq "Yes")
 	{
 	write-host "Get All Mailboxes"
@@ -262,6 +266,7 @@ if(($reportselection) -notlike "*EOL")
 #If Exchange Online
 if(($reportselection) -like "*EOL")
 {
+	Write-Host "Exchange Online Report Selected"
 	If((Select-UserBase) -eq "Yes")
 	{
 	write-host "Get All Mailboxes"
@@ -275,8 +280,9 @@ if(($reportselection) -like "*EOL")
 	$MailUsers = Import-Csv $MailUserFile
 	$mailboxArray = foreach ($mailbox in $mailusers) {
 		$curMailbox = $null
-		$curMailbox = Get-Mailbox $mailbox.EmailAddress
-		if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
+		IF($mailbox.emailaddress -eq $null -or $mailbox.emailaddress -eq ""){$curMailbox = Get-Mailbox $mailbox.$mailboxArray.primarysmtpaddress}
+		ELSE{$curMailbox = Get-Mailbox $mailbox.EmailAddress}
+		#if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
 		#$stats = $curMailbox | Get-MailboxStatistics
         $curMailbox |
     		Select-Object DisplayName,
