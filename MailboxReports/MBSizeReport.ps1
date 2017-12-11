@@ -283,7 +283,11 @@ if(($reportselection) -like "*EOL")
 	write-host "Get Mailboxes From Input File"
 	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
 	$MailUsers = Import-Csv $MailUserFile
+	Write-Host "Gathering Mailboxes..." -ForegroundColor Green
+	$mbcount = 0
 	$mailboxArray = foreach ($mailbox in $mailusers) {
+		$mbcount++
+		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.emailaddress.count)" -PercentComplete ($mbcount/$MailUsers.emailaddress.count)
 		$curMailbox = $null
 		IF($mailbox.emailaddress -eq $null -or $mailbox.emailaddress -eq ""){$curMailbox = Get-Mailbox $mailbox.$mailboxArray.primarysmtpaddress}
 		ELSE{$curMailbox = Get-Mailbox $mailbox.EmailAddress}
