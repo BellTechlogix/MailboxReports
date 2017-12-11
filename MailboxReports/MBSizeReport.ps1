@@ -202,20 +202,25 @@ if(($reportselection) -notlike "*EOL")
 	$MailUsers = Import-Csv $MailUserFile
 	$mailboxArray = foreach ($mailbox in $mailusers) {
 		$curMailbox = $null
-		$curMailbox = Get-Mailbox $mailbox.EmailAddress
-		if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
+		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
+		#$curMailbox = Get-Mailbox $mailbox.EmailAddress
+		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
 		#$stats = $curMailbox | Get-MailboxStatistics
-        $curMailbox |
-    		Select-Object DisplayName,
-            					Alias,
-                      DistinguishedName,
-                      RecipientType,
-                      OrganizationalUnit,
-            					@{n='SmtpAddress';e={ $_.EmailAddresses.SmtpAddress }},
-            					PrimarySmtpAddress,
-                      Database,
-                      ServerName,
-                      UseDatabaseQuotaDefaults
+		if($curMailbox -eq $null -or $curMailbox -eq ""){Write-Host "Multiple Checks could not find Mailbox for $Mailbox.EmailAddress" -ForegroundColor Red}
+        ELSEIF($curMailbox -ne $null -and $curMailbox -ne "")
+		{	
+			$curMailbox |
+    			Select-Object DisplayName,
+            						Alias,
+						  DistinguishedName,
+						  RecipientType,
+						  OrganizationalUnit,
+            						@{n='SmtpAddress';e={ $_.EmailAddresses.SmtpAddress }},
+            						PrimarySmtpAddress,
+						  Database,
+						  ServerName,
+						  UseDatabaseQuotaDefaults
+			}
 	}
 	#test
 		$AllMailbox = $MailboxArray
