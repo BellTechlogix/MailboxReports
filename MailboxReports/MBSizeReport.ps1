@@ -202,15 +202,18 @@ if(($reportselection) -notlike "*EOL")
 	$MailUsers = Import-Csv $MailUserFile
 	Write-Host "Gathering Mailboxes..." -ForegroundColor Green
 	$mbcount = 0
+	$mailboxArray = $null
 	$mailboxArray = foreach ($mailbox in $mailusers) {
 		$curMailbox = $null
 		$mbcount++
-		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.emailaddress.count)" -PercentComplete ($mbcount/$MailUsers.emailaddress.count)
+		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.count)" -PercentComplete ($mbcount/$MailUsers.count*100)
 		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
 		#$curMailbox = Get-Mailbox $mailbox.EmailAddress
-		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
+		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-mailrecipient $mailboxArray.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailboxArray.PrimarySMTPAddress -ne $null -and $mailboxArray.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
 		#$stats = $curMailbox | Get-MailboxStatistics
-		if($curMailbox -eq $null -or $curMailbox -eq ""){Write-Host "Multiple Checks could not find Mailbox for $Mailbox.EmailAddress" -ForegroundColor Red}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host ("Multiple Checks could not find Mailbox for "+$Mailbox.EmailAddress) -ForegroundColor Red}
+		ELSEIF(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -eq "MailUser")){Write-Host ("Checks found that Mailbox for "+$Mailbox.EmailAddress+" is OffPrem") -ForegroundColor Red}
         ELSEIF($curMailbox -ne $null -and $curMailbox -ne "")
 		{	
 			$curMailbox |
@@ -225,6 +228,7 @@ if(($reportselection) -notlike "*EOL")
 						  ServerName,
 						  UseDatabaseQuotaDefaults
 			}
+		$mailbox = $null
 	}
 	#test
 		$AllMailbox = $MailboxArray
@@ -236,7 +240,7 @@ if(($reportselection) -notlike "*EOL")
 	{
 		$i++
 		If($i -ne 0)
-		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.tostring().Count)" -PercentComplete ($i/$AllMailbox.tostring().Count*100)}
+		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.displayname.Count)" -PercentComplete ($i/$AllMailbox.displayname.Count*100)}
 		$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
 		$userObj = New-Object PSObject
 		$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
