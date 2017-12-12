@@ -209,7 +209,7 @@ if(($reportselection) -notlike "*EOL")
 		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.count)" -PercentComplete ($mbcount/$MailUsers.count*100)
 		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
 		#$curMailbox = Get-Mailbox $mailbox.EmailAddress
-		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-recipient $mailboxArray.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
+		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-recipient $mailbox.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
 		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailbox.PrimarySMTPAddress -ne $null -and $mailbox.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
 		#$stats = $curMailbox | Get-MailboxStatistics
 		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host ("Multiple Checks could not find Mailbox for "+$Mailbox.EmailAddress) -ForegroundColor Red}
@@ -286,32 +286,38 @@ if(($reportselection) -like "*EOL")
 	$folder = Get-Folder
 	$AllMailbox = Get-mailbox -resultsize unlimited|select *,@{n='SmtpAddress';e={ $_.EmailAddresses }}
 
-}
+	}
 	ELSE{
 	write-host "Get Mailboxes From Input File"
 	$MailUserFile = Get-FileName -Filter csv -Title "Select MailUser Import File"  -Obj
 	$MailUsers = Import-Csv $MailUserFile
 	Write-Host "Gathering Mailboxes..." -ForegroundColor Green
 	$mbcount = 0
+	$mailboxArray = $null
 	$mailboxArray = foreach ($mailbox in $mailusers) {
+		$curMailbox = $null		
 		$mbcount++
-		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.emailaddress.count)" -PercentComplete ($mbcount/$MailUsers.emailaddress.count)
-		$curMailbox = $null
-		IF($mailbox.emailaddress -eq $null -or $mailbox.emailaddress -eq ""){$curMailbox = Get-Mailbox $mailbox.$mailboxArray.primarysmtpaddress}
-		ELSE{$curMailbox = Get-Mailbox $mailbox.EmailAddress}
-		#if($curMailbox -eq $null -or $curMailbox -eq ""){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress}
-		#$stats = $curMailbox | Get-MailboxStatistics
-        $curMailbox |
-    		Select-Object DisplayName,
-            					Alias,
-                      DistinguishedName,
-                      RecipientType,
-                      OrganizationalUnit,
-            					@{n='SmtpAddress';e={ $_.EmailAddresses }},
-            					PrimarySmtpAddress,
-                      Database,
-                      ServerName,
-                      UseDatabaseQuotaDefaults
+		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.emailaddress.count)" -PercentComplete ($mbcount/$MailUsers.emailaddress.count*100)
+		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
+		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-recipient $mailbox.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailbox.PrimarySMTPAddress -ne $null -and $mailbox.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host ("Multiple Checks could not find Mailbox for "+$Mailbox.EmailAddress) -ForegroundColor Red}
+		ELSEIF(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -eq "MailUser")){Write-Host ("Checks found that Mailbox for "+$Mailbox.EmailAddress+" is Not in the Cloud") -ForegroundColor Yellow}
+        ELSEIF($curMailbox -ne $null -and $curMailbox -ne "")
+		{
+			$curMailbox |
+    			Select-Object DisplayName,
+            						Alias,
+						  DistinguishedName,
+						  RecipientType,
+						  OrganizationalUnit,
+            						@{n='SmtpAddress';e={ $_.EmailAddresses }},
+            						PrimarySmtpAddress,
+						  Database,
+						  ServerName,
+						  UseDatabaseQuotaDefaults
+		}
+		$mailbox = $null
 	}
 	$AllMailbox = $MailboxArray
 }
