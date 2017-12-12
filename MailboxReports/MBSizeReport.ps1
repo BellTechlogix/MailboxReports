@@ -298,9 +298,12 @@ if(($reportselection) -like "*EOL")
 		$curMailbox = $null		
 		$mbcount++
 		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.emailaddress.count)" -PercentComplete ($mbcount/$MailUsers.emailaddress.count*100)
-		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
-		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-recipient $mailbox.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
-		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailbox.PrimarySMTPAddress -ne $null -and $mailbox.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
+		$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction SilentlyContinue
+		if($curMailbox -eq $null -or $curMailbox -eq ""){Write-Host "..." -ForegroundColor Yellow}
+		if($curMailbox -eq $null -or $curMailbox -eq ""){$prem = get-recipient $mailbox.emailaddress -ErrorAction SilentlyContinue}
+		if($prem -eq $null -or $curMailbox -eq ""){Write-Host "....." -ForegroundColor Red}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailbox.PrimarySMTPAddress -ne $null -and $mailbox.PrimarySMTPAddress -ne "")){$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction SilentlyContinue}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host "....." -ForegroundColor Red}
 		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host ("Multiple Checks could not find Mailbox for "+$Mailbox.EmailAddress) -ForegroundColor Red}
 		ELSEIF(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -eq "MailUser")){Write-Host ("Checks found that Mailbox for "+$Mailbox.EmailAddress+" is Not in the Cloud") -ForegroundColor Yellow}
         ELSEIF($curMailbox -ne $null -and $curMailbox -ne "")
