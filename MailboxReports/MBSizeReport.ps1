@@ -209,11 +209,11 @@ if(($reportselection) -notlike "*EOL")
 		Write-Progress -Activity ("Gathering Mailboxes..."+$mailbox.emailaddress) -Status "collected $mbcount of $($MailUsers.count)" -PercentComplete ($mbcount/$MailUsers.count*100)
 		Try{$curMailbox = Get-Mailbox $mailbox.EmailAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Yellow}
 		#$curMailbox = Get-Mailbox $mailbox.EmailAddress
-		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-mailrecipient $mailboxArray.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
-		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailboxArray.PrimarySMTPAddress -ne $null -and $mailboxArray.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
+		if($curMailbox -eq $null -or $curMailbox -eq ""){try{$prem = get-recipient $mailboxArray.emailaddress -ErrorAction Stop}Catch{Write-Host "....." -ForegroundColor Red}}
+		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($mailbox.PrimarySMTPAddress -ne $null -and $mailbox.PrimarySMTPAddress -ne "")){try{$curMailbox = Get-Mailbox $mailbox.PrimarySMTPAddress -ErrorAction Stop}Catch{Write-Host "..." -ForegroundColor Red}}
 		#$stats = $curMailbox | Get-MailboxStatistics
 		if(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -ne "MailUser")){Write-Host ("Multiple Checks could not find Mailbox for "+$Mailbox.EmailAddress) -ForegroundColor Red}
-		ELSEIF(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -eq "MailUser")){Write-Host ("Checks found that Mailbox for "+$Mailbox.EmailAddress+" is OffPrem") -ForegroundColor Red}
+		ELSEIF(($curMailbox -eq $null -or $curMailbox -eq "")-and($prem.RecipientType -eq "MailUser")){Write-Host ("Checks found that Mailbox for "+$Mailbox.EmailAddress+" is OffPrem") -ForegroundColor Yellow}
         ELSEIF($curMailbox -ne $null -and $curMailbox -ne "")
 		{	
 			$curMailbox |
@@ -364,5 +364,5 @@ $rpttype = @{'General Report OnPrem' = "OnPrem_RPT";'General Report EOL' = "EOL_
 $output = $output|select $selections
 $date = get-date -Format "HHmm-yyyy-MMM-dd"
 $type = $rpttype[$reportselection]
-IF($MailUserFile -ne $null){$output | Export-csv (($MailUserFile.PSParentPath+"\$type")+"_"+("$date.csv")) -NoTypeInformation}
+IF($MailUserFile -ne $null){$output | Export-csv (($MailUserFile.PSParentPath+"\"+$mailuserfile.basename+"_"+$type)+"_"+("$date.csv")) -NoTypeInformation}
 ELSE{$output | Export-csv (($folder+"\$type")+"_"+("$date.csv")) -NoTypeInformation}
