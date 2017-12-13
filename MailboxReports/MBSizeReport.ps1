@@ -2,6 +2,7 @@
 MBSizeReport.ps1
 Created By Kristopher Roy
 Date Created 02Oct17
+Date Modified 12Dec17
 Script purpose - Gather details about an exchange mailbox for reporting
 #>
 
