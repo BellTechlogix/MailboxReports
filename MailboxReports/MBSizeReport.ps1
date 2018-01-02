@@ -332,7 +332,7 @@ if(($reportselection) -like "*EOL")
 	{
 		$i++
 		If($i -ne 0)
-		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.Count*100)}
+		{Write-Progress -Activity ("Scanning Mailboxes . . ."+$Mbx.displayname.tostring()) -Status "Scanned: $i of $($AllMailbox.Count)" -PercentComplete ($i/$AllMailbox.displayname.Count*100)}
 		$Stats = Get-mailboxStatistics -Identity $Mbx.distinguishedname -WarningAction SilentlyContinue
 		$userObj = New-Object PSObject
 		$userObj | Add-Member NoteProperty -Name "Display Name" -Value $mbx.displayname
